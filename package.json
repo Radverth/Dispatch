@@ -4,6 +4,7 @@
   "description": "Smart OpenAI model routing, diff-first code review, PLAN.md living documents, and daily token usage dashboard.",
   "version": "0.1.0",
   "publisher": "Tom-Austin",
+  "icon": "media/icon.png",
   "author": {
     "name": "Tom Austin"
   },
