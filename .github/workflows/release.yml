@@ -1,7 +1,11 @@
-name: Release
+name: CI & Release
 on:
   push:
     branches: ['**']
+  pull_request:
+
+permissions:
+  contents: write
 
 jobs:
   release:
@@ -33,6 +37,7 @@ jobs:
         run: npx vsce package --target linux-x64 --out dispatch-linux-x64.vsix
 
       - name: Compute next version
+        if: github.event_name == 'push'
         id: version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,6 +55,7 @@ jobs:
           echo "Next version: ${NEXT}"
 
       - name: Create GitHub Release
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.next }}
