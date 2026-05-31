@@ -208,14 +208,17 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       onDone: async (usageResult) => {
         this.usage.recordUsage(routing.model, usageResult.promptTokens, usageResult.completionTokens);
         this.log.appendLine(`    tokens: ${usageResult.promptTokens} prompt / ${usageResult.completionTokens} completion`);
+        // Strip code blocks for display — code goes to the diff view, not the chat bubble
+        const displayText = fullResponse.replace(/```[\w]*\n[\s\S]*?```/g, '').replace(/\n{3,}/g, '\n\n').trim();
         const newHistory: Message[] = [
           ...apiHistory,
           { role: 'user', content: result.text },
           { role: 'assistant', content: fullResponse },
         ];
         await this._chatHistory.addMessage(session.id, { role: 'user', text: result.text }, newHistory);
-        await this._chatHistory.addMessage(session.id, { role: 'assistant', text: fullResponse }, newHistory);
+        await this._chatHistory.addMessage(session.id, { role: 'assistant', text: displayText }, newHistory);
         this._post({ type: 'sessionsUpdate', sessions: this._chatHistory.summaryList() });
+        this._post({ type: 'trimLastMessage', text: displayText });
         this._post({ type: 'endStream' });
         this._handleModelResponse(fullResponse, routing.model, routing.taskType);
       },

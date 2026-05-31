@@ -275,6 +275,10 @@
         }
         break;
 
+      case 'trimLastMessage':
+        if (currentBubble) currentBubble.textContent = msg.text;
+        break;
+
       case 'endStream':
         currentBubble = null;
         streaming = false;
