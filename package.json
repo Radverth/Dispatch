@@ -3,7 +3,10 @@
   "displayName": "Dispatch",
   "description": "Smart OpenAI model routing, diff-first code review, PLAN.md living documents, and daily token usage dashboard.",
   "version": "0.1.0",
-  "publisher": "tomaustin",
+  "publisher": "Tom-Austin",
+  "author": {
+    "name": "Tom Austin"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/radverth/dispatch.git"
