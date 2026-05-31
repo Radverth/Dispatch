@@ -255,7 +255,9 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       return;
     }
 
-    const codeMatch = response.match(/```([\w]*)\n([\s\S]*?)```/);
+    // Match a closed code block, or fall back to an unclosed one (truncated response)
+    const codeMatch = response.match(/```([\w]*)\n([\s\S]*?)```/) ??
+                      response.match(/```([\w]*)\n([\s\S]+)$/);
     if (codeMatch) {
       let targetUri = vscode.window.activeTextEditor?.document.uri;
 
