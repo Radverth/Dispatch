@@ -243,10 +243,26 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       // Normalise numbered tasks to checkboxes so the tracker works
       const normalised = response.replace(/^(\s*)\d+\.\s+/gm, '$1- [ ] ');
       const newPm = await PlanManager.createProject(this.workspaceRoot, projectName, normalised);
+      this._activePm = newPm;
       this._post({ type: 'planStatus', ...newPm.getStatus(normalised) });
 
+      // Create empty placeholder files listed in ## Files so directories exist
+      const plannedFiles = extractPlannedFiles(normalised, '');
+      const projectDir = newPm.getProjectDir();
+      for (const relPath of plannedFiles) {
+        const fileUri = vscode.Uri.joinPath(vscode.Uri.file(projectDir), relPath);
+        const parentUri = vscode.Uri.joinPath(fileUri, '..');
+        try {
+          await vscode.workspace.fs.stat(fileUri);
+        } catch {
+          await vscode.workspace.fs.createDirectory(parentUri);
+          await vscode.workspace.fs.writeFile(fileUri, Buffer.from('', 'utf8'));
+        }
+      }
+
       // Tell the user PLAN.md is ready and how to proceed
-      this._post({ type: 'chunk', delta: '\n\n_PLAN.md saved. Say **"do it"** or name a task to start executing._' });
+      const fileList = plannedFiles.length ? '\n' + plannedFiles.map(f => '  • ' + f).join('\n') : '';
+      this._post({ type: 'chunk', delta: `\n\n_PLAN.md saved.${fileList}\n\nSay **"do it"** or name a task to start executing._` });
 
       const choice = await vscode.window.showInformationMessage(
         `Project "${newPm.projectName}" created with PLAN.md.`, 'Open PLAN.md',
@@ -259,25 +275,72 @@ export class ChatPanel implements vscode.WebviewViewProvider {
     const codeMatch = response.match(/```([\w]*)\n([\s\S]*?)```/) ??
                       response.match(/```([\w]*)\n([\s\S]+)$/);
     if (codeMatch) {
-      let targetUri = vscode.window.activeTextEditor?.document.uri;
+      let targetUri: vscode.Uri | undefined;
 
-      // If no active editor, try to extract a file path from the response
-      if (!targetUri && this.workspaceRoot) {
+      // 1. Explicit path from the model always wins
+      if (this.workspaceRoot) {
         const newFilePath = extractNewFilePath(response);
         if (newFilePath) {
           targetUri = vscode.Uri.joinPath(vscode.Uri.file(this.workspaceRoot), newFilePath);
-        } else {
-          // Ask the user where to save — model didn't suggest a path
+        }
+      }
+
+      // 2. Active editor — but never overwrite PLAN.md itself
+      if (!targetUri) {
+        const active = vscode.window.activeTextEditor?.document.uri;
+        if (active && !active.fsPath.endsWith('PLAN.md')) {
+          targetUri = active;
+        }
+      }
+
+      // 3a. If no explicit path but we have a planned file that already exists in the
+      //     project directory, prefer that over prompting (handles "make a change to X")
+      if (!targetUri && this.workspaceRoot && this._activePm) {
+        const content = await this._activePm.read();
+        if (content) {
           const lang = codeMatch[1];
-          const placeholder = langToExt(lang) ? `scripts/output${langToExt(lang)}` : 'output.txt';
-          const input = await vscode.window.showInputBox({
-            prompt: 'Save to (relative path in workspace)',
-            placeHolder: placeholder,
-            ignoreFocusOut: true,
-          });
-          if (input?.trim()) {
-            targetUri = vscode.Uri.joinPath(vscode.Uri.file(this.workspaceRoot), input.trim());
+          const planned = extractPlannedFiles(content, lang);
+          for (const rel of planned) {
+            const candidate = vscode.Uri.joinPath(vscode.Uri.file(this._activePm.getProjectDir()), rel);
+            try {
+              await vscode.workspace.fs.stat(candidate);
+              targetUri = candidate;
+              break;
+            } catch { /* not on disk yet */ }
           }
+        }
+      }
+
+      // 4. Planned files not yet on disk — pick one if multiple match
+      if (!targetUri && this.workspaceRoot && this._activePm) {
+        const content = await this._activePm.read();
+        if (content) {
+          const lang = codeMatch[1];
+          const planned = extractPlannedFiles(content, lang);
+          const unwritten = planned.filter(async rel => {
+            try { await vscode.workspace.fs.stat(vscode.Uri.joinPath(vscode.Uri.file(this._activePm!.getProjectDir()), rel)); return false; } catch { return true; }
+          });
+          const candidates = unwritten.length ? unwritten : planned;
+          if (candidates.length === 1) {
+            targetUri = vscode.Uri.joinPath(vscode.Uri.file(this._activePm.getProjectDir()), candidates[0]);
+          } else if (candidates.length > 1) {
+            const pick = await vscode.window.showQuickPick(candidates, { placeHolder: 'Which file to write?' });
+            if (pick) targetUri = vscode.Uri.joinPath(vscode.Uri.file(this._activePm.getProjectDir()), pick);
+          }
+        }
+      }
+
+      // 5. Last resort: ask the user
+      if (!targetUri && this.workspaceRoot) {
+        const lang = codeMatch[1];
+        const placeholder = langToExt(lang) ? `scripts/output${langToExt(lang)}` : 'output.txt';
+        const input = await vscode.window.showInputBox({
+          prompt: 'Save to (relative path in workspace)',
+          placeHolder: placeholder,
+          ignoreFocusOut: true,
+        });
+        if (input?.trim()) {
+          targetUri = vscode.Uri.joinPath(vscode.Uri.file(this.workspaceRoot), input.trim());
         }
       }
 
@@ -356,6 +419,16 @@ function extractNewFilePath(response: string): string | undefined {
   if (explicit) return explicit[1].trim();
   const inSummary = response.match(/Summary:.*?(?:adding|creating|writing)\s+[`']([^`'\n]+\.[a-zA-Z0-9]+)[`']/i);
   return inSummary?.[1];
+}
+
+// Extract file paths from PLAN.md's ## Files section, optionally filtered by extension
+function extractPlannedFiles(planContent: string, lang: string): string[] {
+  const section = planContent.match(/^##\s*Files\s*\n([\s\S]*?)(?=^##|\Z)/m);
+  if (!section) return [];
+  const ext = langToExt(lang);
+  return [...section[1].matchAll(/`([^`]+\.[a-zA-Z0-9]+)`/g)]
+    .map(m => m[1])
+    .filter(p => !ext || p.endsWith(ext));
 }
 
 function langToExt(lang: string): string {

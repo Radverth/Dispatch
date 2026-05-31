@@ -103,6 +103,10 @@ Example structure:
 ## Goal
 One sentence.
 
+## Files
+- 'scripts/New-Foo.ps1' — main script
+- 'tests/New-Foo.Tests.ps1' — Pester tests
+
 ## Tasks
 - [ ] First task
 - [ ] Second task
@@ -112,7 +116,11 @@ One sentence.
 - Risk one
 
 ## Verification
-- [ ] How to confirm it works`;
+- [ ] How to confirm it works
+
+The ## Files section is REQUIRED. List every file that will be created or
+modified. Wrap each path in backticks. Paths must be relative to the
+workspace root. This section routes code to the correct file on execution.`;
 
 export const PROMPT_CODE_SYSTEM = `You are making a targeted code change. You write precise, complete,
 production-quality code. No stubs. No placeholders. No partial implementations.
