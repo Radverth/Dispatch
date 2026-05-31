@@ -3,23 +3,66 @@ on:
   push:
     tags:
       - 'v*.*.*'
+
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            vsce_target: win32-x64
+            artifact: dispatch-win32-x64.vsix
+          - os: ubuntu-latest
+            vsce_target: linux-x64
+            artifact: dispatch-linux-x64.vsix
+
+    runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
+
       - run: npm ci
+
       - run: npm audit --audit-level=high
+
       - run: npx tsc --noEmit
+
       - run: npm run test:unit
-      - run: npx vsce package
-      - name: Create GitHub Release with VSIX
+
+      - name: Package VSIX (${{ matrix.vsce_target }})
+        run: npx vsce package --target ${{ matrix.vsce_target }} --out ${{ matrix.artifact }}
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Windows VSIX
+        uses: actions/download-artifact@v4
+        with:
+          name: dispatch-win32-x64.vsix
+
+      - name: Download Linux VSIX
+        uses: actions/download-artifact@v4
+        with:
+          name: dispatch-linux-x64.vsix
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: '*.vsix'
+          files: |
+            dispatch-win32-x64.vsix
+            dispatch-linux-x64.vsix
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
