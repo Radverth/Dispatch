@@ -75,7 +75,7 @@ export class UsagePanel implements vscode.WebviewViewProvider {
   <title>Dispatch Usage</title>
 </head>
 <body class="usage-body">
-  <h2>Today · 1M Group</h2>
+  <h2>Today · 250K Daily (gpt-5, o-series)</h2>
   <div class="progress-row">
     <div class="progress-bar"><div class="progress-fill ${warn1M ? 'warn' : ''}" style="width:${pct1M}%"></div></div>
     <div class="progress-meta">
@@ -84,7 +84,7 @@ export class UsagePanel implements vscode.WebviewViewProvider {
     </div>
   </div>
 
-  <h2>Today · 10M Group</h2>
+  <h2>Today · 2.5M Daily (mini, nano, codex-mini)</h2>
   <div class="progress-row">
     <div class="progress-bar"><div class="progress-fill ${warn10M ? 'warn' : ''}" style="width:${pct10M}%"></div></div>
     <div class="progress-meta">
@@ -96,8 +96,8 @@ export class UsagePanel implements vscode.WebviewViewProvider {
   <h2>Last 7 Days</h2>
   <div class="bar-chart">${barChart}</div>
   <div class="chart-legend">
-    <span class="legend-1m">■ 1M</span>
-    <span class="legend-10m">■ 10M</span>
+    <span class="legend-1m">■ 250K group</span>
+    <span class="legend-10m">■ 2.5M group</span>
   </div>
 
   <h2>Today by Model</h2>
