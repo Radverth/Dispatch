@@ -196,6 +196,14 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       const pm = new PlanManager(this.workspaceRoot);
       if (!await pm.exists()) {
         await pm.create(response);
+
+        // Extract project name from PLAN.md title line: "# PLAN.md — Project Name"
+        const titleMatch = response.match(/^#\s*PLAN\.md\s*[-—]\s*(.+)$/m);
+        const projectName = titleMatch?.[1]?.trim();
+        if (projectName) {
+          await pm.ensureProjectDirectory(projectName);
+        }
+
         const choice = await vscode.window.showInformationMessage('PLAN.md created.', 'Open');
         if (choice === 'Open' && pm.getPlanUri()) {
           await vscode.window.showTextDocument(pm.getPlanUri()!);

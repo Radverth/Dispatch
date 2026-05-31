@@ -39,6 +39,26 @@ export class PlanManager {
     }
   }
 
+  async ensureProjectDirectory(projectName: string): Promise<string | undefined> {
+    // Derive a safe directory name from the project name
+    const safeName = projectName
+      .replace(/[^a-zA-Z0-9\s\-_]/g, '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .slice(0, 64);
+
+    if (!safeName) return undefined;
+
+    const dirUri = vscode.Uri.file(path.join(this.workspaceRoot, safeName));
+    try {
+      await vscode.workspace.fs.stat(dirUri);
+      // Directory already exists — nothing to do
+    } catch {
+      await vscode.workspace.fs.createDirectory(dirUri);
+    }
+    return safeName;
+  }
+
   async create(content: string): Promise<void> {
     if (!this.planUri) return;
     await vscode.workspace.fs.writeFile(
