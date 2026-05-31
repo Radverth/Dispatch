@@ -4,6 +4,14 @@ const PLANNING_SIGNALS = [
   'plan', 'design', 'architect', 'how should', 'what approach',
   'structure', 'organise', 'organize', 'scaffold', 'new feature',
   'add support for', 'how do i build', 'best way to', 'should i',
+  'build a', 'build an', 'build me', 'build out',
+  'create a', 'create an', 'create me',
+  'make a', 'make an', 'make me',
+  'set up a', 'set up an', 'setup a', 'setup an',
+  'start a', 'start an', 'start building',
+  'implement a', 'implement an',
+  'i want to build', 'i want to create', 'i want to make',
+  'i need a', 'i need an',
 ];
 
 const REFACTOR_SIGNALS = [

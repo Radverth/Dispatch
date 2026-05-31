@@ -27,6 +27,14 @@ const RESPONSES_API_MODELS = new Set([
   'gpt-5-chat-latest',
 ]);
 
+// Models on /v1/responses that DO accept temperature (gpt-4.1 family only)
+// All other responses-API models (o-series, gpt-5.x, codex) reject the parameter
+const RESPONSES_TEMPERATURE_MODELS = new Set([
+  'gpt-4.1-2025-04-14',
+  'gpt-4.1-mini-2025-04-14',
+  'gpt-4.1-nano-2025-04-14',
+]);
+
 export interface Message {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -153,9 +161,9 @@ async function streamResponses(
 
   if (systemMsg) body['instructions'] = systemMsg.content;
 
-  // o-series models don't accept temperature
-  const temp = getTemperature(model, taskType);
-  if (temp !== 1.0) body['temperature'] = temp;
+  if (RESPONSES_TEMPERATURE_MODELS.has(model)) {
+    body['temperature'] = getTemperature(model, taskType);
+  }
 
   let response: Response;
   try {
