@@ -1,0 +1,98 @@
+{
+  "name": "dispatch",
+  "displayName": "Dispatch",
+  "description": "Smart OpenAI model routing, diff-first code review, PLAN.md living documents, and daily token usage dashboard.",
+  "version": "0.1.0",
+  "publisher": "tomaustin",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "dispatch.setApiKey",
+        "title": "Dispatch: Set API Key"
+      },
+      {
+        "command": "dispatch.clearApiKey",
+        "title": "Dispatch: Clear API Key"
+      },
+      {
+        "command": "dispatch.validateApiKey",
+        "title": "Dispatch: Validate API Key"
+      },
+      {
+        "command": "dispatch.openChat",
+        "title": "Dispatch: Open Chat"
+      },
+      {
+        "command": "dispatch.viewUsage",
+        "title": "Dispatch: View Usage Dashboard"
+      },
+      {
+        "command": "dispatch.openPlan",
+        "title": "Dispatch: Open PLAN.md"
+      },
+      {
+        "command": "dispatch.resetUsage",
+        "title": "Dispatch: Reset Today's Usage"
+      },
+      {
+        "command": "dispatch.checkUpdates",
+        "title": "Dispatch: Check for Updates"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dispatch",
+          "title": "Dispatch",
+          "icon": "media/dispatch-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "dispatch": [
+        {
+          "type": "webview",
+          "id": "dispatch.chatView",
+          "name": "Chat"
+        },
+        {
+          "type": "webview",
+          "id": "dispatch.usageView",
+          "name": "Usage"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src/",
+    "test:unit": "jest",
+    "test:integration": "vscode-test",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^18.19.31",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.7.0",
+    "@typescript-eslint/parser": "^7.7.0",
+    "@vscode/test-cli": "^0.0.9",
+    "@vscode/vsce": "^2.26.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
