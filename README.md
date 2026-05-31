@@ -24,8 +24,7 @@ sudo dnf install libsecret-devel
 
 ### From GitHub Releases (recommended)
 
-1. Go to the [Releases](https://github.com/Radverth/Dispatch/releases) page
-2. Download the VSIX for your platform:
+1. Download the VSIX for your platform from the Releases section of this repository:
    - **Windows:** `dispatch-win32-x64.vsix`
    - **Linux:** `dispatch-linux-x64.vsix`
 3. In VS Code, open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
