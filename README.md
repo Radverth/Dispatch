@@ -159,26 +159,6 @@ Dispatch checks for updates silently on each session start. If a new version is 
 
 ---
 
-## Building from Source
-
-```bash
-git clone https://github.com/Radverth/Dispatch.git
-cd dispatch
-npm install
-npm run compile
-npx vsce package --target linux-x64   # or win32-x64
-```
-
-Run checks:
-
-```bash
-npm run lint          # ESLint
-npx tsc --noEmit      # TypeScript
-npm run test:unit     # Jest unit tests
-```
-
----
-
 ## Licence
 
 MIT
