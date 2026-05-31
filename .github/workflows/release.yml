@@ -30,12 +30,6 @@ jobs:
 
       - run: npm run compile
 
-      - name: Package Windows VSIX
-        run: npx vsce package --target win32-x64 --out dispatch-win32-x64.vsix
-
-      - name: Package Linux VSIX
-        run: npx vsce package --target linux-x64 --out dispatch-linux-x64.vsix
-
       - name: Compute next version
         if: github.event_name == 'push'
         id: version
@@ -53,6 +47,18 @@ jobs:
           fi
           echo "next=${NEXT}" >> "$GITHUB_OUTPUT"
           echo "Next version: ${NEXT}"
+
+      - name: Stamp version into package.json
+        if: github.event_name == 'push'
+        run: npm version ${{ steps.version.outputs.next }} --no-git-tag-version
+
+      - name: Package Windows VSIX
+        if: github.event_name == 'push'
+        run: npx vsce package --target win32-x64 --out dispatch-win32-x64.vsix
+
+      - name: Package Linux VSIX
+        if: github.event_name == 'push'
+        run: npx vsce package --target linux-x64 --out dispatch-linux-x64.vsix
 
       - name: Create GitHub Release
         if: github.event_name == 'push'
