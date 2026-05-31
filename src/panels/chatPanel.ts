@@ -41,6 +41,7 @@ export class ChatPanel implements vscode.WebviewViewProvider {
     private readonly workspaceRoot: string | undefined,
     private readonly globalState: vscode.Memento,
     private readonly log: vscode.OutputChannel,
+    private readonly extensionVersion: string,
   ) {
     this._chatHistory = new ChatHistory(globalState);
   }
@@ -310,9 +311,7 @@ export class ChatPanel implements vscode.WebviewViewProvider {
 
   private async _handleCheckUpdates(): Promise<void> {
     this._post({ type: 'updateChecking' });
-    const ext = vscode.extensions.getExtension('Tom-Austin.dispatch');
-    const version: string = ext?.packageJSON?.version ?? '0.0.0';
-    const result = await checkForUpdates(version);
+    const result = await checkForUpdates(this.extensionVersion);
     const statusText =
       result === 'upToDate'    ? 'You\'re up to date.' :
       result === 'updateFound' ? 'Update available — see notification.' :

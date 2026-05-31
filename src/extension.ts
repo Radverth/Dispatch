@@ -17,7 +17,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const log = vscode.window.createOutputChannel('Dispatch');
   context.subscriptions.push(log);
 
-  const chatProvider  = new ChatPanel(context.extensionUri, secrets, usage, workspaceRoot, context.globalState, log);
+  const extensionVersion: string = context.extension?.packageJSON?.version ?? '0.0.0';
+  const chatProvider  = new ChatPanel(context.extensionUri, secrets, usage, workspaceRoot, context.globalState, log, extensionVersion);
   const usageProvider = new UsagePanel(context.extensionUri, usage);
 
   context.subscriptions.push(
@@ -100,9 +101,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
 
     vscode.commands.registerCommand('dispatch.checkUpdates', async () => {
-      const ext = vscode.extensions.getExtension('tomaustin.dispatch');
-      const version: string = ext?.packageJSON?.version ?? '0.0.0';
-      await checkForUpdates(version);
+      await checkForUpdates(extensionVersion);
     }),
 
     vscode.commands.registerCommand('dispatch.showLog', () => {
@@ -122,9 +121,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   if (!updateChecked) {
     updateChecked = true;
-    const ext = vscode.extensions.getExtension('tomaustin.dispatch');
-    const version: string = ext?.packageJSON?.version ?? '0.0.0';
-    checkForUpdates(version);
+    checkForUpdates(extensionVersion);
   }
 }
 
