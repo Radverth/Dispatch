@@ -19,7 +19,10 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:dispatch.chatView",
+    "onView:dispatch.usageView",
+    "onView:dispatch.chatViewPanel"
   ],
   "main": "./out/extension.js",
   "contributes": {
