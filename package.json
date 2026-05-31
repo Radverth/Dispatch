@@ -55,6 +55,10 @@
       {
         "command": "dispatch.checkUpdates",
         "title": "Dispatch: Check for Updates"
+      },
+      {
+        "command": "dispatch.showLog",
+        "title": "Dispatch: Show Log"
       }
     ],
     "viewsContainers": {

@@ -238,6 +238,67 @@ body {
 .icon-btn:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground); }
 .icon-btn svg { width: 16px; height: 16px; }
 
+/* ── Sessions bar ── */
+.sessions-bar {
+  border-bottom: 1px solid var(--vscode-panel-border);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sessions-bar.hidden { display: none; }
+.sessions-bar::-webkit-scrollbar { display: none; }
+
+.sessions-list {
+  display: flex;
+  gap: 2px;
+  padding: 4px 8px;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px 3px 10px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  max-width: 140px;
+  transition: background 0.1s;
+}
+.session-item:hover { background: var(--vscode-toolbar-hoverBackground); }
+.session-item.session-active {
+  background: var(--vscode-list-activeSelectionBackground);
+  border-color: var(--vscode-focusBorder, transparent);
+}
+
+.session-title {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  color: var(--vscode-foreground);
+}
+.session-active .session-title { color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground)); }
+
+.session-del {
+  background: none;
+  border: none;
+  color: var(--vscode-icon-foreground);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 1px;
+  opacity: 0;
+  flex-shrink: 0;
+  border-radius: 2px;
+  transition: opacity 0.1s;
+}
+.session-item:hover .session-del { opacity: 0.5; }
+.session-del:hover { opacity: 1 !important; background: var(--vscode-toolbar-hoverBackground); }
+
 /* ── Bars ── */
 .budget-bar {
   padding: 5px 10px;

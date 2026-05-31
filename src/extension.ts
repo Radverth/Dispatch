@@ -11,21 +11,21 @@ let updateChecked = false;
 
 export function activate(context: vscode.ExtensionContext): void {
   const secrets = new SecretManager(context.secrets);
-  const usage = new UsageTracker(context.globalState);
+  const usage   = new UsageTracker(context.globalState);
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-  const chatProvider = new ChatPanel(context.extensionUri, secrets, usage, workspaceRoot);
+  const log = vscode.window.createOutputChannel('Dispatch');
+  context.subscriptions.push(log);
+
+  const chatProvider  = new ChatPanel(context.extensionUri, secrets, usage, workspaceRoot, context.globalState, log);
   const usageProvider = new UsagePanel(context.extensionUri, usage);
 
-  // 'dispatch.chatViewPanel' is the same provider registered for the bottom panel container
-  // so users can drag it to the right sidebar (secondary sidebar)
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(ChatPanel.viewType, chatProvider),
     vscode.window.registerWebviewViewProvider('dispatch.chatViewPanel', chatProvider),
     vscode.window.registerWebviewViewProvider(UsagePanel.viewType, usageProvider),
   );
 
-  // Commands
   context.subscriptions.push(
     vscode.commands.registerCommand('dispatch.setApiKey', async () => {
       const key = await vscode.window.showInputBox({
@@ -52,10 +52,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.commands.registerCommand('dispatch.validateApiKey', async () => {
       const key = await secrets.getApiKey();
-      if (!key) {
-        vscode.window.showWarningMessage('No API key set.');
-        return;
-      }
+      if (!key) { vscode.window.showWarningMessage('No API key set.'); return; }
       const valid = await validateApiKey(key);
       vscode.window.showInformationMessage(valid ? 'API key is valid.' : 'API key is invalid.');
     }),
@@ -69,15 +66,10 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
 
     vscode.commands.registerCommand('dispatch.openPlan', async () => {
-      if (!workspaceRoot) {
-        vscode.window.showWarningMessage('No workspace open.');
-        return;
-      }
+      if (!workspaceRoot) { vscode.window.showWarningMessage('No workspace open.'); return; }
       const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath;
       let pm: PlanManager | undefined;
-      if (activeFile) {
-        pm = await PlanManager.findForFile(workspaceRoot, activeFile);
-      }
+      if (activeFile) pm = await PlanManager.findForFile(workspaceRoot, activeFile);
       if (!pm) {
         const all = await PlanManager.findAll(workspaceRoot);
         if (all.length === 0) {
@@ -112,9 +104,12 @@ export function activate(context: vscode.ExtensionContext): void {
       const version: string = ext?.packageJSON?.version ?? '0.0.0';
       await checkForUpdates(version);
     }),
+
+    vscode.commands.registerCommand('dispatch.showLog', () => {
+      log.show();
+    }),
   );
 
-  // Prompt for API key on first activation if missing
   secrets.getApiKey().then(key => {
     if (!key) {
       vscode.window.showInformationMessage(
@@ -125,7 +120,6 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   });
 
-  // Silent update check — once per session
   if (!updateChecked) {
     updateChecked = true;
     const ext = vscode.extensions.getExtension('tomaustin.dispatch');

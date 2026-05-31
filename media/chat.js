@@ -11,31 +11,34 @@
   const splashSaveBtn   = document.getElementById('splash-save-btn');
   const splashError     = document.getElementById('splash-error');
 
-  const settingsBackBtn = document.getElementById('settings-back-btn');
-  const settingsKeyInput= document.getElementById('settings-key-input');
-  const settingsSaveBtn = document.getElementById('settings-save-btn');
-  const settingsError   = document.getElementById('settings-error');
-  const settingsClearBtn   = document.getElementById('settings-clear-btn');
-  const settingsUpdateBtn  = document.getElementById('settings-update-btn');
+  const settingsBackBtn      = document.getElementById('settings-back-btn');
+  const settingsKeyInput     = document.getElementById('settings-key-input');
+  const settingsSaveBtn      = document.getElementById('settings-save-btn');
+  const settingsError        = document.getElementById('settings-error');
+  const settingsClearBtn     = document.getElementById('settings-clear-btn');
+  const settingsUpdateBtn    = document.getElementById('settings-update-btn');
   const settingsUpdateStatus = document.getElementById('settings-update-status');
-  const settingsBtn     = document.getElementById('settings-btn');
+  const settingsBtn          = document.getElementById('settings-btn');
 
-  const modelLabel      = document.getElementById('model-label');
-  const modelOverride   = document.getElementById('model-override');
-  const planStatusEl    = document.getElementById('plan-status');
-  const budgetBar       = document.getElementById('budget-bar');
-  const messagesEl      = document.getElementById('messages');
+  const modelLabel    = document.getElementById('model-label');
+  const modelOverride = document.getElementById('model-override');
+  const planStatusEl  = document.getElementById('plan-status');
+  const budgetBar     = document.getElementById('budget-bar');
+  const messagesEl    = document.getElementById('messages');
+  const sessionsBar   = document.getElementById('sessions-bar');
+  const sessionsList  = document.getElementById('sessions-list');
+  const btnNewChat    = document.getElementById('btn-new-chat');
 
   const diffActions     = document.getElementById('diff-actions');
   const diffSummary     = document.getElementById('diff-summary');
   const feedbackActions = document.getElementById('feedback-actions');
 
-  const btnAccept       = document.getElementById('btn-accept');
-  const btnReject       = document.getElementById('btn-reject');
-  const btnYes          = document.getElementById('btn-yes');
-  const btnNo           = document.getElementById('btn-no');
-  const btnSend         = document.getElementById('btn-send');
-  const inputEl         = document.getElementById('input');
+  const btnAccept = document.getElementById('btn-accept');
+  const btnReject = document.getElementById('btn-reject');
+  const btnYes    = document.getElementById('btn-yes');
+  const btnNo     = document.getElementById('btn-no');
+  const btnSend   = document.getElementById('btn-send');
+  const inputEl   = document.getElementById('input');
 
   // ── State ──
   let currentBubble   = null;
@@ -86,9 +89,7 @@
     vscode.postMessage({ type: 'saveApiKey', key });
   }
 
-  settingsClearBtn.addEventListener('click', () => {
-    vscode.postMessage({ type: 'clearApiKey' });
-  });
+  settingsClearBtn.addEventListener('click', () => vscode.postMessage({ type: 'clearApiKey' }));
 
   settingsUpdateBtn.addEventListener('click', () => {
     settingsUpdateBtn.disabled = true;
@@ -97,6 +98,44 @@
     settingsUpdateStatus.classList.add('hidden');
     vscode.postMessage({ type: 'checkUpdates' });
   });
+
+  // ── New chat ──
+  btnNewChat.addEventListener('click', () => vscode.postMessage({ type: 'newChat' }));
+
+  // ── Sessions rendering ──
+  function renderSessions(sessions) {
+    if (!sessions || sessions.length <= 1) {
+      sessionsBar.classList.add('hidden');
+      return;
+    }
+    sessionsBar.classList.remove('hidden');
+    sessionsList.innerHTML = '';
+    sessions.forEach(function(s) {
+      const item = document.createElement('div');
+      item.className = 'session-item' + (s.isActive ? ' session-active' : '');
+
+      const label = document.createElement('span');
+      label.className = 'session-title';
+      label.textContent = s.title;
+      label.title = s.title;
+      label.addEventListener('click', function() {
+        if (!s.isActive) vscode.postMessage({ type: 'switchChat', id: s.id });
+      });
+
+      const del = document.createElement('button');
+      del.className = 'session-del';
+      del.title = 'Delete chat';
+      del.innerHTML = '&times;';
+      del.addEventListener('click', function(e) {
+        e.stopPropagation();
+        vscode.postMessage({ type: 'deleteChat', id: s.id });
+      });
+
+      item.appendChild(label);
+      item.appendChild(del);
+      sessionsList.appendChild(item);
+    });
+  }
 
   // ── Chat ──
   function addMsg(role, text) {
@@ -108,13 +147,18 @@
     return div;
   }
 
+  function restoreMessages(messages) {
+    messagesEl.innerHTML = '';
+    (messages || []).forEach(function(m) { addMsg(m.role, m.text); });
+  }
+
   function send() {
     const text = inputEl.value.trim();
     if (!text || streaming) return;
     addMsg('user', text);
     inputEl.value = '';
     autoResize();
-    vscode.postMessage({ type: 'sendMessage', text, model: modelOverride.value });
+    vscode.postMessage({ type: 'sendMessage', text: text, model: modelOverride.value });
     btnSend.disabled = true;
     streaming = true;
     diffActions.classList.add('hidden');
@@ -122,7 +166,7 @@
   }
 
   btnSend.addEventListener('click', send);
-  inputEl.addEventListener('keydown', e => {
+  inputEl.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   });
   inputEl.addEventListener('input', autoResize);
@@ -133,20 +177,20 @@
   }
 
   // ── Diff / Feedback ──
-  btnAccept.addEventListener('click', () => {
+  btnAccept.addEventListener('click', function() {
     vscode.postMessage({ type: 'acceptDiff' });
     diffActions.classList.add('hidden');
   });
-  btnReject.addEventListener('click', () => {
+  btnReject.addEventListener('click', function() {
     vscode.postMessage({ type: 'rejectDiff' });
     diffActions.classList.add('hidden');
   });
-  btnYes.addEventListener('click', () => {
+  btnYes.addEventListener('click', function() {
     vscode.postMessage({ type: 'feedbackYes', taskText: pendingTaskText, logText: pendingLogText, model: pendingLogModel });
     feedbackActions.classList.add('hidden');
     addMsg('assistant', '✓ Marked as done in PLAN.md.');
   });
-  btnNo.addEventListener('click', () => {
+  btnNo.addEventListener('click', function() {
     vscode.postMessage({ type: 'feedbackNo', taskText: pendingTaskText });
     feedbackActions.classList.add('hidden');
     addMsg('assistant', '✗ Marked as failed in PLAN.md. Task re-queued.');
@@ -164,7 +208,7 @@
   }
 
   // ── Message handler ──
-  window.addEventListener('message', e => {
+  window.addEventListener('message', function(e) {
     const msg = e.data;
     switch (msg.type) {
       case 'showSplash':
@@ -172,7 +216,7 @@
         splashKeyInput.value = '';
         clearError(splashError);
         show(screenSplash);
-        setTimeout(() => splashKeyInput.focus(), 50);
+        setTimeout(function() { splashKeyInput.focus(); }, 50);
         break;
 
       case 'showChat':
@@ -180,12 +224,23 @@
         show(screenChat);
         break;
 
+      case 'restoreMessages':
+        restoreMessages(msg.messages);
+        diffActions.classList.add('hidden');
+        feedbackActions.classList.add('hidden');
+        streaming = false;
+        btnSend.disabled = false;
+        break;
+
+      case 'sessionsUpdate':
+        renderSessions(msg.sessions);
+        break;
+
       case 'keyValidating':
         break;
 
       case 'keyError':
         resetKeyButtons();
-        // Show error on whichever screen is active
         if (!screenSettings.classList.contains('hidden')) {
           showError(settingsError, msg.text);
         } else {
@@ -270,6 +325,5 @@
     }
   });
 
-  // Request initial state
   vscode.postMessage({ type: 'requestState' });
 })();
