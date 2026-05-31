@@ -1,4 +1,4 @@
-import { ROUTING_MODELS } from './modelRegistry';
+import { ROUTING_MODELS, getModelGroup } from './modelRegistry';
 
 const PLANNING_SIGNALS = [
   'plan', 'design', 'architect', 'how should', 'what approach',
@@ -77,9 +77,7 @@ export function routeTask(
 }
 
 function determineGroup(model: string): '1M' | '10M' {
-  const { getModelGroup } = require('./modelRegistry');
-  const g = getModelGroup(model);
-  return g === '10M' ? '10M' : '1M';
+  return getModelGroup(model) === '10M' ? '10M' : '1M';
 }
 
 export function getTemperature(model: string, taskType: TaskType): number {

@@ -32,6 +32,8 @@ jobs:
 
       - run: npx tsc --noEmit
 
+      - run: npx eslint src/
+
       - run: npm run test:unit
 
       - name: Package VSIX (${{ matrix.vsce_target }})
@@ -46,9 +48,25 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute release tag
+        id: tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            SAFE_BRANCH="${BRANCH//\//-}"
+            SHORT_SHA="${GITHUB_SHA::7}"
+            echo "tag=branch-${SAFE_BRANCH}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download Windows VSIX
         uses: actions/download-artifact@v4
         with:
@@ -62,9 +80,11 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          prerelease: ${{ steps.tag.outputs.prerelease }}
+          generate_release_notes: true
           files: |
             dispatch-win32-x64.vsix
             dispatch-linux-x64.vsix
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

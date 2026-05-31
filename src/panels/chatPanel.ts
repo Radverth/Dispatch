@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { SecretManager } from '../secretManager';
 import { UsageTracker } from '../usageTracker';
 import { PlanManager } from '../planManager';

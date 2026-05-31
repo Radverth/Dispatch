@@ -100,7 +100,6 @@ export class PlanManager {
   }
 
   getStatus(content: string): PlanStatus {
-    const matches = (state: string) => (content.match(new RegExp(`\\${state.slice(0, 1)}${state.slice(1)}`, 'g')) || []).length;
     return {
       done:       (content.match(/\[x\]/g) || []).length,
       inProgress: (content.match(/\[>\]/g) || []).length,
