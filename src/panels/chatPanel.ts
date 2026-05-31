@@ -225,6 +225,8 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       },
       onError: (err) => {
         this.log.appendLine(`[${new Date().toISOString()}] ERROR: ${err.message}`);
+        this._post({ type: 'trimLastMessage', text: '' });
+        this._post({ type: 'endStream' });
         this._post({ type: 'error', text: `API error: ${err.message}` });
       },
     }, this._abortController.signal);
@@ -244,7 +246,7 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       return;
     }
 
-    const codeMatch = response.match(/```[\w]*\n([\s\S]*?)```/);
+    const codeMatch = response.match(/```([\w]*)\n([\s\S]*?)```/);
     if (codeMatch) {
       let targetUri = vscode.window.activeTextEditor?.document.uri;
 
@@ -253,11 +255,23 @@ export class ChatPanel implements vscode.WebviewViewProvider {
         const newFilePath = extractNewFilePath(response);
         if (newFilePath) {
           targetUri = vscode.Uri.joinPath(vscode.Uri.file(this.workspaceRoot), newFilePath);
+        } else {
+          // Ask the user where to save — model didn't suggest a path
+          const lang = codeMatch[1];
+          const placeholder = langToExt(lang) ? `scripts/output${langToExt(lang)}` : 'output.txt';
+          const input = await vscode.window.showInputBox({
+            prompt: 'Save to (relative path in workspace)',
+            placeHolder: placeholder,
+            ignoreFocusOut: true,
+          });
+          if (input?.trim()) {
+            targetUri = vscode.Uri.joinPath(vscode.Uri.file(this.workspaceRoot), input.trim());
+          }
         }
       }
 
       if (targetUri) {
-        const newContent = codeMatch[1];
+        const newContent = codeMatch[2];
         const summaryMatch = response.match(/Summary:\s*(.+)/i);
         const summary = summaryMatch ? summaryMatch[1].trim() : 'Proposed change';
         this._pendingChange = { targetUri, newContent, summary };
@@ -331,4 +345,14 @@ function extractNewFilePath(response: string): string | undefined {
   if (explicit) return explicit[1].trim();
   const inSummary = response.match(/Summary:.*?(?:adding|creating|writing)\s+[`']([^`'\n]+\.[a-zA-Z0-9]+)[`']/i);
   return inSummary?.[1];
+}
+
+function langToExt(lang: string): string {
+  const map: Record<string, string> = {
+    typescript: '.ts', javascript: '.js', python: '.py', powershell: '.ps1',
+    bash: '.sh', sh: '.sh', rust: '.rs', go: '.go', java: '.java',
+    csharp: '.cs', cs: '.cs', cpp: '.cpp', c: '.c', ruby: '.rb',
+    php: '.php', swift: '.swift', kotlin: '.kt', yaml: '.yml', json: '.json',
+  };
+  return map[lang.toLowerCase()] ?? '';
 }
