@@ -24,7 +24,7 @@ sudo dnf install libsecret-devel
 
 ### From GitHub Releases (recommended)
 
-1. Go to the [Releases](../../releases) page
+1. Go to the [Releases](https://github.com/Radverth/Dispatch/releases) page
 2. Download the VSIX for your platform:
    - **Windows:** `dispatch-win32-x64.vsix`
    - **Linux:** `dispatch-linux-x64.vsix`
