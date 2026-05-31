@@ -233,12 +233,21 @@ export class ChatPanel implements vscode.WebviewViewProvider {
   }
 
   private async _handleModelResponse(response: string, model: string, taskType: string): Promise<void> {
-    // Only create a project when the response is an actual plan (has checklist items)
-    if (taskType === 'planning' && this.workspaceRoot && /\[ \]|\[>\]/.test(response)) {
+    // Create a project when the response looks like an actual plan:
+    // has checklist items OR a ## Tasks section (model may use numbered list despite instructions)
+    const looksLikePlan = /\[ \]|\[>\]/.test(response) || /^##\s*Tasks/m.test(response);
+    if (taskType === 'planning' && this.workspaceRoot && looksLikePlan) {
       const titleMatch = response.match(/^#\s*PLAN\.md\s*[-—]\s*(.+)$/m);
       const projectName = titleMatch?.[1]?.trim() ?? 'Project';
-      const newPm = await PlanManager.createProject(this.workspaceRoot, projectName, response);
-      this._post({ type: 'planStatus', ...newPm.getStatus(response) });
+
+      // Normalise numbered tasks to checkboxes so the tracker works
+      const normalised = response.replace(/^(\s*)\d+\.\s+/gm, '$1- [ ] ');
+      const newPm = await PlanManager.createProject(this.workspaceRoot, projectName, normalised);
+      this._post({ type: 'planStatus', ...newPm.getStatus(normalised) });
+
+      // Tell the user PLAN.md is ready and how to proceed
+      this._post({ type: 'chunk', delta: '\n\n_PLAN.md saved. Say **"do it"** or name a task to start executing._' });
+
       const choice = await vscode.window.showInformationMessage(
         `Project "${newPm.projectName}" created with PLAN.md.`, 'Open PLAN.md',
       );

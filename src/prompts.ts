@@ -87,8 +87,32 @@ any code is written.
 
 ## Output
 
-Output only the PLAN.md content using the exact template structure.
-No preamble. No explanation. No markdown fences around the document.`;
+Output only the PLAN.md content. No preamble. No explanation.
+No markdown fences around the document.
+
+Tasks MUST use checkbox format — this is required for the extension to
+track progress. Use exactly this format for every task:
+
+- [ ] Task description here
+
+Never use numbered lists for tasks. Always use - [ ] checkboxes.
+
+Example structure:
+# PLAN.md — Project Name
+
+## Goal
+One sentence.
+
+## Tasks
+- [ ] First task
+- [ ] Second task
+- [ ] Third task
+
+## Risks
+- Risk one
+
+## Verification
+- [ ] How to confirm it works`;
 
 export const PROMPT_CODE_SYSTEM = `You are making a targeted code change. You write precise, complete,
 production-quality code. No stubs. No placeholders. No partial implementations.
