@@ -423,7 +423,7 @@ function extractNewFilePath(response: string): string | undefined {
 
 // Extract file paths from PLAN.md's ## Files section, optionally filtered by extension
 function extractPlannedFiles(planContent: string, lang: string): string[] {
-  const section = planContent.match(/^##\s*Files\s*\n([\s\S]*?)(?=^##|\Z)/m);
+  const section = planContent.match(/^##\s*Files\s*\n([\s\S]*?)(?=^##|$)/m);
   if (!section) return [];
   const ext = langToExt(lang);
   return [...section[1].matchAll(/`([^`]+\.[a-zA-Z0-9]+)`/g)]
