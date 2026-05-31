@@ -70,12 +70,19 @@ export class ChatPanel implements vscode.WebviewViewProvider {
 
   private async _sendPlanStatus(): Promise<void> {
     if (!this.workspaceRoot) return;
-    const pm = new PlanManager(this.workspaceRoot);
-    if (await pm.exists()) {
+    const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath;
+    let pm: PlanManager | undefined;
+    if (activeFile) {
+      pm = await PlanManager.findForFile(this.workspaceRoot, activeFile);
+    }
+    if (!pm) {
+      // Fall back to any project in the workspace
+      const all = await PlanManager.findAll(this.workspaceRoot);
+      pm = all[0];
+    }
+    if (pm) {
       const content = await pm.read();
-      if (content) {
-        this._post({ type: 'planStatus', ...pm.getStatus(content) });
-      }
+      if (content) this._post({ type: 'planStatus', ...pm.getStatus(content) });
     }
   }
 
@@ -146,12 +153,17 @@ export class ChatPanel implements vscode.WebviewViewProvider {
     }
 
     let planContent: string | undefined;
+    let activePm: PlanManager | undefined;
+
     if (this.workspaceRoot) {
-      const pm = new PlanManager(this.workspaceRoot);
-      if (await pm.exists()) {
-        planContent = await pm.read();
+      const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath;
+      if (activeFile) {
+        activePm = await PlanManager.findForFile(this.workspaceRoot, activeFile);
+      }
+      if (activePm && await activePm.exists()) {
+        planContent = await activePm.read();
         if (planContent) {
-          this._post({ type: 'planStatus', ...pm.getStatus(planContent) });
+          this._post({ type: 'planStatus', ...activePm.getStatus(planContent) });
         }
       }
     }
@@ -193,23 +205,20 @@ export class ChatPanel implements vscode.WebviewViewProvider {
 
   private async _handleModelResponse(response: string, model: string, taskType: string): Promise<void> {
     if (taskType === 'planning' && this.workspaceRoot) {
-      const pm = new PlanManager(this.workspaceRoot);
-      if (!await pm.exists()) {
-        await pm.create(response);
+      const titleMatch = response.match(/^#\s*PLAN\.md\s*[-—]\s*(.+)$/m);
+      const projectName = titleMatch?.[1]?.trim() ?? 'Project';
 
-        // Extract project name from PLAN.md title line: "# PLAN.md — Project Name"
-        const titleMatch = response.match(/^#\s*PLAN\.md\s*[-—]\s*(.+)$/m);
-        const projectName = titleMatch?.[1]?.trim();
-        if (projectName) {
-          await pm.ensureProjectDirectory(projectName);
-        }
+      // Always create a new project subdirectory with its own PLAN.md
+      const newPm = await PlanManager.createProject(this.workspaceRoot, projectName, response);
+      this._post({ type: 'planStatus', ...newPm.getStatus(response) });
 
-        const choice = await vscode.window.showInformationMessage('PLAN.md created.', 'Open');
-        if (choice === 'Open' && pm.getPlanUri()) {
-          await vscode.window.showTextDocument(pm.getPlanUri()!);
-        }
-        return;
+      const choice = await vscode.window.showInformationMessage(
+        `Project "${newPm.projectName}" created with PLAN.md.`, 'Open PLAN.md',
+      );
+      if (choice === 'Open PLAN.md') {
+        await vscode.window.showTextDocument(newPm.getPlanUri());
       }
+      return;
     }
 
     const codeMatch = response.match(/```[\w]*\n([\s\S]*?)```/);

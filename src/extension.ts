@@ -73,13 +73,27 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.window.showWarningMessage('No workspace open.');
         return;
       }
-      const pm = new PlanManager(workspaceRoot);
-      if (!await pm.exists()) {
-        vscode.window.showWarningMessage('No PLAN.md in this workspace. Start a coding task to create one.');
-        return;
+      const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath;
+      let pm: PlanManager | undefined;
+      if (activeFile) {
+        pm = await PlanManager.findForFile(workspaceRoot, activeFile);
       }
-      const uri = pm.getPlanUri();
-      if (uri) await vscode.window.showTextDocument(uri);
+      if (!pm) {
+        const all = await PlanManager.findAll(workspaceRoot);
+        if (all.length === 0) {
+          vscode.window.showWarningMessage('No PLAN.md in this workspace. Start a coding task to create one.');
+          return;
+        }
+        if (all.length === 1) {
+          pm = all[0];
+        } else {
+          const items = all.map(p => ({ label: p.projectName, description: p.getProjectDir(), pm: p }));
+          const pick = await vscode.window.showQuickPick(items, { placeHolder: 'Select a project' });
+          if (!pick) return;
+          pm = pick.pm;
+        }
+      }
+      await vscode.window.showTextDocument(pm.getPlanUri());
     }),
 
     vscode.commands.registerCommand('dispatch.resetUsage', async () => {
