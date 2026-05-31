@@ -142,6 +142,19 @@ body {
 }
 .danger-btn:hover { opacity: 0.8; }
 
+.settings-divider {
+  height: 1px;
+  background: var(--vscode-panel-border);
+  margin: 8px 0;
+}
+
+.settings-update-status {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 4px;
+}
+.settings-update-status.hidden { display: none; }
+
 /* ── Settings screen ── */
 .settings-header {
   display: flex;

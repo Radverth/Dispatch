@@ -15,7 +15,9 @@
   const settingsKeyInput= document.getElementById('settings-key-input');
   const settingsSaveBtn = document.getElementById('settings-save-btn');
   const settingsError   = document.getElementById('settings-error');
-  const settingsClearBtn= document.getElementById('settings-clear-btn');
+  const settingsClearBtn   = document.getElementById('settings-clear-btn');
+  const settingsUpdateBtn  = document.getElementById('settings-update-btn');
+  const settingsUpdateStatus = document.getElementById('settings-update-status');
   const settingsBtn     = document.getElementById('settings-btn');
 
   const modelLabel      = document.getElementById('model-label');
@@ -86,6 +88,14 @@
 
   settingsClearBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'clearApiKey' });
+  });
+
+  settingsUpdateBtn.addEventListener('click', () => {
+    settingsUpdateBtn.disabled = true;
+    settingsUpdateBtn.textContent = 'Checking…';
+    settingsUpdateStatus.textContent = '';
+    settingsUpdateStatus.classList.add('hidden');
+    vscode.postMessage({ type: 'checkUpdates' });
   });
 
   // ── Chat ──
@@ -238,6 +248,18 @@
 
       case 'pendingTask':
         pendingTaskText = msg.taskText;
+        break;
+
+      case 'updateChecking':
+        settingsUpdateBtn.disabled = true;
+        settingsUpdateBtn.textContent = 'Checking…';
+        break;
+
+      case 'updateCheckDone':
+        settingsUpdateBtn.disabled = false;
+        settingsUpdateBtn.textContent = 'Check for updates';
+        settingsUpdateStatus.textContent = 'Check complete.';
+        settingsUpdateStatus.classList.remove('hidden');
         break;
 
       case 'error':

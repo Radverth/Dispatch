@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { checkForUpdates } from '../updateChecker';
 import { SecretManager } from '../secretManager';
 import { UsageTracker } from '../usageTracker';
 import { PlanManager } from '../planManager';
@@ -88,6 +89,7 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       case 'rejectDiff':     await this._handleRejectDiff(); break;
       case 'feedbackYes':    await this._handleFeedbackYes(String(msg.taskText || ''), String(msg.logText || ''), String(msg.model || '')); break;
       case 'feedbackNo':     await this._handleFeedbackNo(String(msg.taskText || '')); break;
+      case 'checkUpdates':   await this._handleCheckUpdates(); break;
     }
   }
 
@@ -254,6 +256,14 @@ export class ChatPanel implements vscode.WebviewViewProvider {
     }
   }
 
+  private async _handleCheckUpdates(): Promise<void> {
+    this._post({ type: 'updateChecking' });
+    const ext = vscode.extensions.getExtension('Tom-Austin.dispatch');
+    const version: string = ext?.packageJSON?.version ?? '0.0.0';
+    await checkForUpdates(version);
+    this._post({ type: 'updateCheckDone' });
+  }
+
   private _post(msg: Record<string, unknown>): void {
     this._view?.webview.postMessage(msg);
   }
@@ -314,6 +324,10 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       </div>
       <p id="settings-error" class="key-error hidden"></p>
       <button id="settings-clear-btn" class="danger-btn">Clear API key</button>
+      <div class="settings-divider"></div>
+      <label class="settings-label">Updates</label>
+      <button id="settings-update-btn" class="btn-secondary">Check for updates</button>
+      <p id="settings-update-status" class="settings-update-status hidden"></p>
     </div>
   </div>
 
