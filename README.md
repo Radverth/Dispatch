@@ -63,7 +63,7 @@ Dispatch is designed for users on the complimentary OpenAI token programme:
 | 1M | gpt-5.x, gpt-4.x, o1, o3 families | 250,000 tokens |
 | 10M | mini, nano, codex-mini families | 2,500,000 tokens |
 
-Dispatch tracks usage per group and warns at 80% of each daily budget. Token counts shown are estimates derived from the OpenAI API response — verify exact consumption at [platform.openai.com](https://platform.openai.com).
+Dispatch tracks usage per group and warns at 80% of each daily budget. Token counts shown are estimates derived from the OpenAI API response — verify exact consumption at platform.openai.com.
 
 ---
 
@@ -162,7 +162,7 @@ Dispatch checks for updates silently on each session start. If a new version is 
 ## Building from Source
 
 ```bash
-git clone https://github.com/radverth/dispatch.git
+git clone https://github.com/Radverth/Dispatch.git
 cd dispatch
 npm install
 npm run compile
@@ -181,7 +181,7 @@ npm run test:unit     # Jest unit tests
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE)
+MIT
 
 ---
 
