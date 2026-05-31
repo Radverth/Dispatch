@@ -312,35 +312,41 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       }
 
       // 4. Planned files not yet on disk — pick one if multiple match
-      if (!targetUri && this.workspaceRoot && this._activePm) {
+      if (!targetUri && this._activePm) {
         const content = await this._activePm.read();
         if (content) {
           const lang = codeMatch[1];
           const planned = extractPlannedFiles(content, lang);
-          const unwritten = planned.filter(async rel => {
-            try { await vscode.workspace.fs.stat(vscode.Uri.joinPath(vscode.Uri.file(this._activePm!.getProjectDir()), rel)); return false; } catch { return true; }
-          });
+          const projectDir = vscode.Uri.file(this._activePm.getProjectDir());
+          const unwritten: string[] = [];
+          for (const rel of planned) {
+            try { await vscode.workspace.fs.stat(vscode.Uri.joinPath(projectDir, rel)); }
+            catch { unwritten.push(rel); }
+          }
           const candidates = unwritten.length ? unwritten : planned;
           if (candidates.length === 1) {
-            targetUri = vscode.Uri.joinPath(vscode.Uri.file(this._activePm.getProjectDir()), candidates[0]);
+            targetUri = vscode.Uri.joinPath(projectDir, candidates[0]);
           } else if (candidates.length > 1) {
             const pick = await vscode.window.showQuickPick(candidates, { placeHolder: 'Which file to write?' });
-            if (pick) targetUri = vscode.Uri.joinPath(vscode.Uri.file(this._activePm.getProjectDir()), pick);
+            if (pick) targetUri = vscode.Uri.joinPath(projectDir, pick);
           }
         }
       }
 
-      // 5. Last resort: ask the user
-      if (!targetUri && this.workspaceRoot) {
-        const lang = codeMatch[1];
-        const placeholder = langToExt(lang) ? `scripts/output${langToExt(lang)}` : 'output.txt';
-        const input = await vscode.window.showInputBox({
-          prompt: 'Save to (relative path in workspace)',
-          placeHolder: placeholder,
-          ignoreFocusOut: true,
-        });
-        if (input?.trim()) {
-          targetUri = vscode.Uri.joinPath(vscode.Uri.file(this.workspaceRoot), input.trim());
+      // 5. Last resort: ask the user, anchored to project dir if one is active
+      if (!targetUri) {
+        const base = this._activePm?.getProjectDir() ?? this.workspaceRoot;
+        if (base) {
+          const lang = codeMatch[1];
+          const placeholder = langToExt(lang) ? `scripts/output${langToExt(lang)}` : 'output.txt';
+          const input = await vscode.window.showInputBox({
+            prompt: 'Save to (relative path in project)',
+            placeHolder: placeholder,
+            ignoreFocusOut: true,
+          });
+          if (input?.trim()) {
+            targetUri = vscode.Uri.joinPath(vscode.Uri.file(base), input.trim());
+          }
         }
       }
 
