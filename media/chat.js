@@ -313,7 +313,7 @@
       case 'updateCheckDone':
         settingsUpdateBtn.disabled = false;
         settingsUpdateBtn.textContent = 'Check for updates';
-        settingsUpdateStatus.textContent = 'Check complete.';
+        settingsUpdateStatus.textContent = msg.statusText || 'Check complete.';
         settingsUpdateStatus.classList.remove('hidden');
         break;
 

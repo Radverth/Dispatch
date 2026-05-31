@@ -293,8 +293,12 @@ export class ChatPanel implements vscode.WebviewViewProvider {
     this._post({ type: 'updateChecking' });
     const ext = vscode.extensions.getExtension('Tom-Austin.dispatch');
     const version: string = ext?.packageJSON?.version ?? '0.0.0';
-    await checkForUpdates(version);
-    this._post({ type: 'updateCheckDone' });
+    const result = await checkForUpdates(version);
+    const statusText =
+      result === 'upToDate'    ? 'You\'re up to date.' :
+      result === 'updateFound' ? 'Update available — see notification.' :
+                                 'Could not check for updates.';
+    this._post({ type: 'updateCheckDone', statusText });
   }
 
   private _post(msg: Record<string, unknown>): void {

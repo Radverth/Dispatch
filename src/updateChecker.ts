@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-const RELEASES_URL = 'https://api.github.com/repos/tomaustin/dispatch/releases/latest';
+const RELEASES_URL = 'https://api.github.com/repos/radverth/dispatch/releases/latest';
 
 function semverGt(a: string, b: string): boolean {
   const parse = (v: string) => v.split('.').map(Number);
@@ -64,25 +64,33 @@ function showUpdateNotification(vsixUrl: string): void {
   });
 }
 
-export async function checkForUpdates(currentVersion: string): Promise<void> {
+export type UpdateCheckResult = 'upToDate' | 'updateFound' | 'error';
+
+export async function checkForUpdates(currentVersion: string): Promise<UpdateCheckResult> {
   try {
     const response = await fetch(RELEASES_URL, {
       headers: { 'User-Agent': 'dispatch-vscode-extension' },
     });
-    if (!response.ok) return;
+    if (!response.ok) return 'error';
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const release: any = await response.json();
     const latestVersion: string = release.tag_name?.replace(/^v/, '') ?? '';
-    if (!latestVersion || !semverGt(latestVersion, currentVersion)) return;
+    if (!latestVersion || !semverGt(latestVersion, currentVersion)) return 'upToDate';
 
+    const platformSuffix = process.platform === 'win32' ? 'win32-x64' : 'linux-x64';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const vsixAsset = release.assets?.find((a: any) => a.name.endsWith('.vsix'));
-    if (!vsixAsset) return;
+    const vsixAsset = release.assets?.find((a: any) =>
+      a.name.endsWith('.vsix') && a.name.includes(platformSuffix),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ) ?? release.assets?.find((a: any) => a.name.endsWith('.vsix'));
+
+    if (!vsixAsset) return 'upToDate';
 
     showUpdateNotification(vsixAsset.browser_download_url as string);
+    return 'updateFound';
   } catch {
-    // Update check failures are always silent
+    return 'error';
   }
 }
 
