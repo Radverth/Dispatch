@@ -7,7 +7,7 @@ import { ChatHistory } from '../chatHistory';
 import { routeTask } from '../modelRouter';
 import { sanitise } from '../sanitiser';
 import { streamCompletion, Message, validateApiKey } from '../apiClient';
-import { openDiff, applyChange, cleanupShadow, getLastShadowUri } from '../diffEditor';
+import { openDiff, applyChange, cleanupShadow, getLastShadowUri, getLastEmptyShadowUri } from '../diffEditor';
 import {
   PROMPT_GLOBAL_SYSTEM, PROMPT_PLANNING_SYSTEM, PROMPT_CODE_SYSTEM,
   PROMPT_REFACTOR_SYSTEM, PROMPT_PROSE_SYSTEM, PROMPT_MECHANICAL_SYSTEM,
@@ -227,7 +227,8 @@ export class ChatPanel implements vscode.WebviewViewProvider {
   }
 
   private async _handleModelResponse(response: string, model: string, taskType: string): Promise<void> {
-    if (taskType === 'planning' && this.workspaceRoot) {
+    // Only create a project when the response is an actual plan (has checklist items)
+    if (taskType === 'planning' && this.workspaceRoot && /\[ \]|\[>\]/.test(response)) {
       const titleMatch = response.match(/^#\s*PLAN\.md\s*[-—]\s*(.+)$/m);
       const projectName = titleMatch?.[1]?.trim() ?? 'Project';
       const newPm = await PlanManager.createProject(this.workspaceRoot, projectName, response);
@@ -240,14 +241,25 @@ export class ChatPanel implements vscode.WebviewViewProvider {
     }
 
     const codeMatch = response.match(/```[\w]*\n([\s\S]*?)```/);
-    if (codeMatch && vscode.window.activeTextEditor) {
-      const targetUri = vscode.window.activeTextEditor.document.uri;
-      const newContent = codeMatch[1];
-      const summaryMatch = response.match(/Summary:\s*(.+)/i);
-      const summary = summaryMatch ? summaryMatch[1].trim() : 'Proposed change';
-      this._pendingChange = { targetUri, newContent, summary };
-      await openDiff({ targetUri, newContent, summary });
-      this._post({ type: 'showDiffActions', summary });
+    if (codeMatch) {
+      let targetUri = vscode.window.activeTextEditor?.document.uri;
+
+      // If no active editor, try to extract a file path from the response
+      if (!targetUri && this.workspaceRoot) {
+        const newFilePath = extractNewFilePath(response);
+        if (newFilePath) {
+          targetUri = vscode.Uri.joinPath(vscode.Uri.file(this.workspaceRoot), newFilePath);
+        }
+      }
+
+      if (targetUri) {
+        const newContent = codeMatch[1];
+        const summaryMatch = response.match(/Summary:\s*(.+)/i);
+        const summary = summaryMatch ? summaryMatch[1].trim() : 'Proposed change';
+        this._pendingChange = { targetUri, newContent, summary };
+        await openDiff({ targetUri, newContent, summary });
+        this._post({ type: 'showDiffActions', summary });
+      }
     }
 
     const logMatch = response.match(/^LOG:\s*(.+)$/m);
@@ -257,18 +269,22 @@ export class ChatPanel implements vscode.WebviewViewProvider {
   private async _handleAcceptDiff(): Promise<void> {
     if (!this._pendingChange) return;
     const shadowUri = getLastShadowUri();
+    const emptyUri  = getLastEmptyShadowUri();
     try {
       await applyChange(this._pendingChange.targetUri, this._pendingChange.newContent);
       this._post({ type: 'diffAccepted', summary: this._pendingChange.summary });
     } finally {
       if (shadowUri) await cleanupShadow(shadowUri);
+      if (emptyUri)  await cleanupShadow(emptyUri);
       this._pendingChange = undefined;
     }
   }
 
   private async _handleRejectDiff(): Promise<void> {
     const shadowUri = getLastShadowUri();
+    const emptyUri  = getLastEmptyShadowUri();
     if (shadowUri) await cleanupShadow(shadowUri);
+    if (emptyUri)  await cleanupShadow(emptyUri);
     this._pendingChange = undefined;
     this._post({ type: 'diffRejected' });
   }
@@ -304,4 +320,13 @@ export class ChatPanel implements vscode.WebviewViewProvider {
   private _post(msg: Record<string, unknown>): void {
     this._view?.webview.postMessage(msg);
   }
+}
+
+// Parse a new file path from the model response.
+// Looks for explicit "NEW FILE: path" or "Summary: Adding `path`" patterns.
+function extractNewFilePath(response: string): string | undefined {
+  const explicit = response.match(/^NEW FILE:\s*([^\s\n]+)/m);
+  if (explicit) return explicit[1].trim();
+  const inSummary = response.match(/Summary:.*?(?:adding|creating|writing)\s+[`']([^`'\n]+\.[a-zA-Z0-9]+)[`']/i);
+  return inSummary?.[1];
 }

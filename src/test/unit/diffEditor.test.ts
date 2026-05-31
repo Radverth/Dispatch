@@ -8,11 +8,13 @@ const mockOpenDoc = vscode.workspace.openTextDocument as jest.Mock;
 beforeEach(() => jest.clearAllMocks());
 
 describe('applyChange', () => {
-  it('calls applyEdit and returns true', async () => {
+  it('calls applyEdit and returns true for existing file', async () => {
     const fakeDoc = {
       positionAt: (_: number) => ({ line: 0, character: 0 }),
       getText: () => 'old content',
+      save: () => Promise.resolve(true),
     };
+    mockFs.stat.mockResolvedValue({} as never);
     mockOpenDoc.mockResolvedValue(fakeDoc);
     mockApplyEdit.mockResolvedValue(true);
 
@@ -22,11 +24,29 @@ describe('applyChange', () => {
     expect(mockApplyEdit).toHaveBeenCalled();
   });
 
+  it('creates new file when target does not exist', async () => {
+    const fakeDoc = {
+      positionAt: () => ({ line: 0, character: 0 }),
+      getText: () => '',
+      save: () => Promise.resolve(true),
+    };
+    mockFs.stat.mockRejectedValue(new Error('not found'));
+    mockFs.createDirectory.mockResolvedValue(undefined);
+    mockOpenDoc.mockResolvedValue(fakeDoc);
+    mockApplyEdit.mockResolvedValue(true);
+
+    const uri = vscode.Uri.file('/workspace/scripts/new.ps1');
+    const result = await applyChange(uri, 'content');
+    expect(result).toBe(true);
+  });
+
   it('throws when applyEdit returns false', async () => {
     const fakeDoc = {
       positionAt: () => ({ line: 0, character: 0 }),
       getText: () => '',
+      save: () => Promise.resolve(false),
     };
+    mockFs.stat.mockResolvedValue({} as never);
     mockOpenDoc.mockResolvedValue(fakeDoc);
     mockApplyEdit.mockResolvedValue(false);
 

@@ -9,6 +9,7 @@ const vscode = {
       writeFile: jest.fn(),
       delete: jest.fn(),
       stat: jest.fn(),
+      createDirectory: jest.fn(),
     },
     openTextDocument: jest.fn(),
     applyEdit: jest.fn().mockResolvedValue(true),
@@ -30,7 +31,10 @@ const vscode = {
   },
   WorkspaceEdit: jest.fn().mockImplementation(() => ({
     replace: jest.fn(),
+    createFile: jest.fn(),
+    insert: jest.fn(),
   })),
+  Position: jest.fn().mockImplementation((line: number, char: number) => ({ line, character: char })),
   Range: jest.fn(),
   SecretStorage: jest.fn(),
   Memento: jest.fn(),
