@@ -78,13 +78,19 @@ export class UsagePanel implements vscode.WebviewViewProvider {
   <h2>Today · 1M Group</h2>
   <div class="progress-row">
     <div class="progress-bar"><div class="progress-fill ${warn1M ? 'warn' : ''}" style="width:${pct1M}%"></div></div>
-    <span class="${warn1M ? 'warn-text' : ''}">${today.group1M.toLocaleString()} / ${budget1M.toLocaleString()} (${pct1M}%)${warn1M ? ' ⚠' : ''}</span>
+    <div class="progress-meta">
+      <span class="${warn1M ? 'warn-text' : ''}">${today.group1M.toLocaleString()} / ${budget1M.toLocaleString()}</span>
+      <span class="${warn1M ? 'warn-text' : ''}">${pct1M}%${warn1M ? ' ⚠' : ''}</span>
+    </div>
   </div>
 
   <h2>Today · 10M Group</h2>
   <div class="progress-row">
     <div class="progress-bar"><div class="progress-fill ${warn10M ? 'warn' : ''}" style="width:${pct10M}%"></div></div>
-    <span class="${warn10M ? 'warn-text' : ''}">${today.group10M.toLocaleString()} / ${budget10M.toLocaleString()} (${pct10M}%)${warn10M ? ' ⚠' : ''}</span>
+    <div class="progress-meta">
+      <span class="${warn10M ? 'warn-text' : ''}">${today.group10M.toLocaleString()} / ${budget10M.toLocaleString()}</span>
+      <span class="${warn10M ? 'warn-text' : ''}">${pct10M}%${warn10M ? ' ⚠' : ''}</span>
+    </div>
   </div>
 
   <h2>Last 7 Days</h2>

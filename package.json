@@ -60,6 +60,13 @@
           "title": "Dispatch",
           "icon": "media/dispatch-icon.svg"
         }
+      ],
+      "panel": [
+        {
+          "id": "dispatch-panel",
+          "title": "Dispatch",
+          "icon": "media/dispatch-icon.svg"
+        }
       ]
     },
     "views": {
@@ -73,6 +80,13 @@
           "type": "webview",
           "id": "dispatch.usageView",
           "name": "Usage"
+        }
+      ],
+      "dispatch-panel": [
+        {
+          "type": "webview",
+          "id": "dispatch.chatViewPanel",
+          "name": "Dispatch"
         }
       ]
     }

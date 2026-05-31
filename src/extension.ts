@@ -17,8 +17,11 @@ export function activate(context: vscode.ExtensionContext): void {
   const chatProvider = new ChatPanel(context.extensionUri, secrets, usage, workspaceRoot);
   const usageProvider = new UsagePanel(context.extensionUri, usage);
 
+  // 'dispatch.chatViewPanel' is the same provider registered for the bottom panel container
+  // so users can drag it to the right sidebar (secondary sidebar)
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(ChatPanel.viewType, chatProvider),
+    vscode.window.registerWebviewViewProvider('dispatch.chatViewPanel', chatProvider),
     vscode.window.registerWebviewViewProvider(UsagePanel.viewType, usageProvider),
   );
 
