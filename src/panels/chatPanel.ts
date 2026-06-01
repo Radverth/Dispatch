@@ -277,11 +277,12 @@ export class ChatPanel implements vscode.WebviewViewProvider {
     if (codeMatch) {
       let targetUri: vscode.Uri | undefined;
 
-      // 1. Explicit path from the model always wins
-      if (this.workspaceRoot) {
+      // 1. Explicit path from the model always wins — anchor to project dir if active
+      {
         const newFilePath = extractNewFilePath(response);
         if (newFilePath) {
-          targetUri = vscode.Uri.joinPath(vscode.Uri.file(this.workspaceRoot), newFilePath);
+          const base = this._activePm?.getProjectDir() ?? this.workspaceRoot;
+          if (base) targetUri = vscode.Uri.joinPath(vscode.Uri.file(base), newFilePath);
         }
       }
 
@@ -390,7 +391,11 @@ export class ChatPanel implements vscode.WebviewViewProvider {
   private async _handleFeedbackYes(taskText: string, logText: string, model: string): Promise<void> {
     const pm = this._activePm;
     if (!pm) return;
-    if (taskText) await pm.updateChecklistItem(taskText, '[>]', '[x]');
+    if (taskText) {
+      // Try [>] first (in-progress), fall back to [ ] (pending) so the tick always lands
+      const updated = await pm.updateChecklistItem(taskText, '[>]', '[x]');
+      if (!updated) await pm.updateChecklistItem(taskText, '[ ]', '[x]');
+    }
     if (logText) await pm.appendChangeLog(model, logText);
   }
 
@@ -398,7 +403,8 @@ export class ChatPanel implements vscode.WebviewViewProvider {
     const pm = this._activePm;
     if (!pm) return;
     if (taskText) {
-      await pm.updateChecklistItem(taskText, '[>]', '[~]');
+      const updated = await pm.updateChecklistItem(taskText, '[>]', '[~]');
+      if (!updated) await pm.updateChecklistItem(taskText, '[ ]', '[~]');
       await pm.appendSurprise('User reported change did not work.');
     }
   }
