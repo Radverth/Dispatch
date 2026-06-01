@@ -174,10 +174,17 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       this._post({ type: 'budgetWarning', group: routing.group, percent: Math.round(pct * 100), model: routing.model });
     }
 
-    // Find active project PLAN.md
+    // Find active project PLAN.md — prefer active editor, fall back to last-used project
     if (this.workspaceRoot) {
       const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath;
       if (activeFile) this._activePm = await PlanManager.findForFile(this.workspaceRoot, activeFile);
+      if (!this._activePm) {
+        const lastDir = this.globalState.get<string>('dispatch.lastProjectDir');
+        if (lastDir) {
+          const candidate = new PlanManager(lastDir);
+          if (await candidate.exists()) this._activePm = candidate;
+        }
+      }
     }
 
     let planContent: string | undefined;
@@ -244,6 +251,7 @@ export class ChatPanel implements vscode.WebviewViewProvider {
       const normalised = response.replace(/^(\s*)\d+\.\s+/gm, '$1- [ ] ');
       const newPm = await PlanManager.createProject(this.workspaceRoot, projectName, normalised);
       this._activePm = newPm;
+      await this.globalState.update('dispatch.lastProjectDir', newPm.getProjectDir());
       this._post({ type: 'planStatus', ...newPm.getStatus(normalised) });
 
       // Create empty placeholder files listed in ## Files so directories exist
@@ -363,6 +371,10 @@ export class ChatPanel implements vscode.WebviewViewProvider {
 
     const logMatch = response.match(/^LOG:\s*(.+)$/m);
     if (logMatch) this._post({ type: 'pendingLog', logText: logMatch[1], model });
+
+    // Extract the task the model says it's working on (first line: "Task: ..." or checklist item text)
+    const taskMatch = response.match(/^(?:Task:\s*|-\s*\[[ >x~]\]\s*)(.+)$/m);
+    if (taskMatch) this._post({ type: 'pendingTask', taskText: taskMatch[1].trim() });
   }
 
   private async _handleAcceptDiff(): Promise<void> {
